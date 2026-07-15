@@ -288,7 +288,6 @@ def web_app_handler(message):
     
     except Exception as e:
         print(f"❌ Error: {e}")
-        import traceback; traceback.print_exc()
 
 # ============================================
 # Auto Status Updater
@@ -340,8 +339,10 @@ def api_orders():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
+    print("🔔 Webhook called!")
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
+        print(f"📥 Data: {json_string[:200]}")
         update = telebot.types.Update.de_json(json_string)
         bot.process_new_updates([update])
         return 'OK', 200
@@ -357,9 +358,12 @@ def index():
 
 if __name__ == '__main__':
     print("🤖 Bot Starting...")
-    import requests
-    requests.post(f'https://api.telegram.org/bot{API_TOKEN}/deleteWebhook')
-    requests.post(f'https://api.telegram.org/bot{API_TOKEN}/setWebhook', json={'url': f'{RENDER_URL}/webhook'})
+    
+    # Webhook সেটাপ
+    bot.remove_webhook()
+    time.sleep(1)
+    bot.set_webhook(url=f'{RENDER_URL}/webhook')
     print("✅ Webhook set!")
+    
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
