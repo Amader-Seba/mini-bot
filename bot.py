@@ -23,6 +23,9 @@ ADMIN_MINI_APP_URL = "https://digital-center-admin.netlify.app"
 # Google Apps Script URL
 GAS_URL = "https://script.google.com/macros/s/AKfycbw6h1J8pfxjqv7WFZjJZ5oFdMSwcBAJzo8MBDPTPdfbvwtjYoBH_ONIlfyq-2lG0yfh/exec"
 
+# Render URL
+RENDER_URL = "https://mini-bot-ec4y.onrender.com"
+
 bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 CORS(app)
@@ -98,20 +101,24 @@ def handle_start(message):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("👑 এডমিন প্যানেল", web_app=types.WebAppInfo(url=ADMIN_MINI_APP_URL)))
         bot.send_message(chat_id, "👑 **স্বাগতম এডমিন!**\n\nনিচের বাটনে ক্লিক করে প্যানেল খুলুন।", reply_markup=markup, parse_mode="Markdown")
+        print("✅ Admin menu sent")
         return
     
     if user:
+        ud = user
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔥 অর্ডার করুন", web_app=types.WebAppInfo(url=USER_MINI_APP_URL)))
         bot.send_message(chat_id,
             f"🚀 **Digital Center**\n━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 {user['name']}\n📱 {user['phone']}\n💰 {user['balance']} টাকা\n"
+            f"👤 {ud['name']}\n📱 {ud['phone']}\n💰 {ud['balance']} টাকা\n"
             f"━━━━━━━━━━━━━━━━━━━\n👇 অর্ডার করতে ক্লিক করুন",
             reply_markup=markup, parse_mode="Markdown")
+        print(f"✅ Menu sent to {ud['name']}")
     else:
         registration_states[chat_id] = {'step': 'name'}
         msg = bot.send_message(chat_id, "📝 **নিবন্ধন ফর্ম**\n\n✍️ আপনার পূর্ণ নাম লিখুন:", parse_mode="Markdown")
         registration_states[chat_id]['msg_id'] = msg.message_id
+        print(f"✅ Registration started for {chat_id}")
 
 # ============================================
 # Registration Handler
@@ -134,6 +141,7 @@ def handle_registration(message):
         registration_states[chat_id] = {'step': 'phone', 'name': name}
         msg = bot.send_message(chat_id, f"✅ নাম: **{name}**\n\n📱 মোবাইল নাম্বার (01XXXXXXXXX):", parse_mode="Markdown")
         registration_states[chat_id]['msg_id'] = msg.message_id
+        print(f"📝 Name: {name}")
     elif state['step'] == 'phone':
         phone = message.text.strip()
         if not (phone.startswith('01') and len(phone) == 11 and phone.isdigit()):
@@ -149,6 +157,7 @@ def handle_registration(message):
         markup.add(types.InlineKeyboardButton("🔥 অর্ডার করুন", web_app=types.WebAppInfo(url=USER_MINI_APP_URL)))
         bot.send_message(chat_id, "✅ **নিবন্ধন সফল!**\n\n👇 অর্ডার করতে ক্লিক করুন", reply_markup=markup, parse_mode="Markdown")
         bot.send_message(ADMIN_ID, f"🆕 **নতুন রেজিস্ট্রেশন!**\n👤 নাম: {name}\n📱 নাম্বার: {phone}\n🆔 ID: {chat_id}", parse_mode="Markdown")
+        print(f"✅ Registered: {name} - {phone}")
 
 # ============================================
 # Web App Data Handler
@@ -179,7 +188,7 @@ def web_app_handler(message):
             price = service['price']
             
             if balance < price:
-                bot.send_message(chat_id, f"❌ **পর্যাপ্ত ব্যালেন্স নেই!**\n━━━━━━━━━━━━━━━━━━━\n💰 প্রয়োজন: {price} টাকা\n💳 আপনার: {balance} টাকা\n━━━━━━━━━━━━━━━━━━━\n📞 @{ADMIN_USERNAME}", parse_mode="Markdown"); return
+                bot.send_message(chat_id, f"❌ **ব্যালেন্স নেই!**\n━━━━━━━━━━━━━━━━━━━\n💰 প্রয়োজন: {price} টাকা\n💳 আপনার: {balance} টাকা\n━━━━━━━━━━━━━━━━━━━\n📞 @{ADMIN_USERNAME}", parse_mode="Markdown"); return
             
             order_id = str(random.randint(10000, 99999))
             all_info = ""
@@ -195,9 +204,10 @@ def web_app_handler(message):
                 'info': all_info, 'status_msg_id': None, 'percentage': 1
             }
             
-            status_text = f"✅ **অর্ডার সফলভাবে গ্রহণ করা হয়েছে!**\n━━━━━━━━━━━━━━━━━━━\n🆔 **#{order_id}**\n📦 **{service['name']}**\n💰 **✓{price}**\n⏱️ **{service['time']}**\n━━━━━━━━━━━━━━━━━━━\n🔴 **Live Status:** 1%"
+            status_text = f"✅ **অর্ডার সফল!**\n━━━━━━━━━━━━━━━━━━━\n🆔 **#{order_id}**\n📦 **{service['name']}**\n💰 **✓{price}**\n⏱️ **{service['time']}**\n━━━━━━━━━━━━━━━━━━━\n🔴 **Live Status:** 1%"
             msg = bot.send_message(chat_id, status_text, parse_mode="Markdown")
             active_orders[order_id]['status_msg_id'] = msg.message_id
+            print(f"✅ Order {order_id} created")
             
             bot.send_message(ADMIN_ID, f"🔔 **নতুন অর্ডার!**\n━━━━━━━━━━━━━━━━━━━\n🆔 #{order_id}\n👤 {user['name']}\n📱 {user['phone']}\n📦 {service['name']}\n💰 {price} টাকা\n━━━━━━━━━━━━━━━━━━━\n📝 {all_info}", parse_mode="Markdown")
             threading.Thread(target=auto_status_updater, args=(chat_id, order_id)).start()
@@ -206,22 +216,24 @@ def web_app_handler(message):
             order_id = data['order_id']; text = data.get('text', '')
             if order_id in active_orders:
                 order = active_orders[order_id]
-                msg = f"📥 **অর্ডার ডেলিভারি কমপ্লিট!**\n━━━━━━━━━━━━━━━━━━━\n🆔 #{order_id}\n📦 {order['service']}\n👁️ তথ্য:\n{order['info']}\n━━━━━━━━━━━━━━━━━━━\n📥 এডমিন ডেলিভারি পাঠিয়েছে।"
-                if text: msg += f"\n\n📝 {text}"
+                msg = f"📥 **অর্ডার ডেলিভারি!**\n━━━━━━━━━━━━━━━━━━━\n🆔 #{order_id}\n📦 {order['service']}\n━━━━━━━━━━━━━━━━━━━"
+                if text: msg += f"\n📝 {text}"
                 bot.send_message(order['user_id'], msg, parse_mode="Markdown")
                 update_order_sheet(order_id, 'DELIVERED', 100)
                 active_orders.pop(order_id, None)
-                bot.send_message(ADMIN_ID, f"✅ #{order_id} ডেলিভারি সম্পন্ন!")
+                bot.send_message(ADMIN_ID, f"✅ #{order_id} ডেলিভারি!")
+                print(f"✅ Delivered: {order_id}")
         
         elif action == 'cancel':
             order_id = data['order_id']; reason = data.get('reason', 'N/A')
             if order_id in active_orders:
                 order = active_orders[order_id]
                 update_balance(order['user_id'], order['price'])
-                bot.send_message(order['user_id'], f"❌ **অর্ডার বাতিল হয়েছে!**\n━━━━━━━━━━━━━━━━━━━\n🆔 #{order_id}\n📦 {order['service']}\nℹ️ কারণ: {reason}\n💰 {order['price']} টাকা রিফান্ড হয়েছে।", parse_mode="Markdown")
+                bot.send_message(order['user_id'], f"❌ **অর্ডার বাতিল!**\n━━━━━━━━━━━━━━━━━━━\n🆔 #{order_id}\n📦 {order['service']}\nℹ️ কারণ: {reason}\n💰 {order['price']} টাকা রিফান্ড", parse_mode="Markdown")
                 update_order_sheet(order_id, 'CANCELLED', 0)
                 active_orders.pop(order_id, None)
-                bot.send_message(ADMIN_ID, f"❌ #{order_id} বাতিল!\nকারণ: {reason}")
+                bot.send_message(ADMIN_ID, f"❌ #{order_id} বাতিল!")
+                print(f"✅ Cancelled: {order_id}")
         
         elif action == 'update_status':
             order_id = data['order_id']; pct = data['percentage']
@@ -229,6 +241,7 @@ def web_app_handler(message):
                 active_orders[order_id]['percentage'] = pct
                 update_status_msg(active_orders[order_id]['user_id'], order_id, pct)
                 update_order_sheet(order_id, 'PROCESSING', pct)
+                print(f"📊 Status: {order_id} -> {pct}%")
         
         elif action == 'add_balance':
             uid = data['user_id']; amt = int(data['amount'])
@@ -236,6 +249,7 @@ def web_app_handler(message):
             try: bot.send_message(int(uid), f"💰 **{amt} টাকা যোগ হয়েছে!**\n💳 বর্তমান ব্যালেন্স: {new_bal} টাকা", parse_mode="Markdown")
             except: pass
             bot.send_message(ADMIN_ID, f"✅ ব্যালেন্স যোগ: {uid} +{amt} = {new_bal}")
+            print(f"💰 Added: +{amt}")
         
         elif action == 'cut_balance':
             uid = data['user_id']; amt = int(data['amount'])
@@ -243,6 +257,7 @@ def web_app_handler(message):
             try: bot.send_message(int(uid), f"💰 **{amt} টাকা কাটা হয়েছে!**\n💳 বর্তমান ব্যালেন্স: {new_bal} টাকা", parse_mode="Markdown")
             except: pass
             bot.send_message(ADMIN_ID, f"✅ ব্যালেন্স কাটা: {uid} -{amt} = {new_bal}")
+            print(f"💰 Cut: -{amt}")
         
         elif action == 'block_user':
             uid = data['user_id']
@@ -256,7 +271,7 @@ def web_app_handler(message):
         
         elif action == 'update_service':
             requests.post(GAS_URL, json={'action': 'update_service', 'service_id': data['service_id'], 'price': data.get('price'), 'status': data.get('status')}, timeout=10)
-            bot.send_message(ADMIN_ID, f"✅ সার্ভিস আপডেট সম্পন্ন!")
+            bot.send_message(ADMIN_ID, f"✅ সার্ভিস আপডেট!")
         
         elif action == 'broadcast':
             msg_text = data['message']
@@ -267,12 +282,13 @@ def web_app_handler(message):
                 for u in users:
                     try: bot.send_message(int(u['user_id']), f"📢 **নোটিশ:**\n\n{msg_text}", parse_mode="Markdown"); count += 1
                     except: pass
-                bot.send_message(ADMIN_ID, f"✅ ব্রডকাস্ট সম্পন্ন! {count} জনকে পাঠানো হয়েছে।")
+                bot.send_message(ADMIN_ID, f"✅ ব্রডকাস্ট! {count} জনকে পাঠানো হয়েছে।")
             except Exception as e:
-                bot.send_message(ADMIN_ID, f"❌ ব্রডকাস্ট এরর: {e}")
+                bot.send_message(ADMIN_ID, f"❌ এরর: {e}")
     
     except Exception as e:
         print(f"❌ Error: {e}")
+        import traceback; traceback.print_exc()
 
 # ============================================
 # Auto Status Updater
@@ -285,13 +301,14 @@ def auto_status_updater(chat_id, order_id):
             active_orders[order_id]['percentage'] = p
             update_status_msg(chat_id, order_id, p)
             update_order_sheet(order_id, 'PROCESSING', p)
+            print(f"📊 Auto: {order_id} -> {p}%")
 
 def update_status_msg(chat_id, order_id, pct):
     if order_id in active_orders:
         order = active_orders[order_id]
         if order['status_msg_id']:
             try:
-                txt = f"✅ **অর্ডার সফলভাবে গ্রহণ করা হয়েছে!**\n━━━━━━━━━━━━━━━━━━━\n🆔 **#{order_id}**\n📦 **{order['service']}**\n💰 **✓{order['price']}**\n⏱️ **{order['time']}**\n━━━━━━━━━━━━━━━━━━━\n🔴 **Live Status:** {pct}%"
+                txt = f"✅ **অর্ডার সফল!**\n━━━━━━━━━━━━━━━━━━━\n🆔 **#{order_id}**\n📦 **{order['service']}**\n💰 **✓{order['price']}**\n⏱️ **{order['time']}**\n━━━━━━━━━━━━━━━━━━━\n🔴 **Live Status:** {pct}%"
                 bot.edit_message_text(chat_id=chat_id, message_id=order['status_msg_id'], text=txt, parse_mode="Markdown")
             except: pass
 
@@ -340,6 +357,9 @@ def index():
 
 if __name__ == '__main__':
     print("🤖 Bot Starting...")
-    # Render.com-এর জন্য PORT
+    import requests
+    requests.post(f'https://api.telegram.org/bot{API_TOKEN}/deleteWebhook')
+    requests.post(f'https://api.telegram.org/bot{API_TOKEN}/setWebhook', json={'url': f'{RENDER_URL}/webhook'})
+    print("✅ Webhook set!")
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
